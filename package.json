@@ -1,19 +1,70 @@
 {
   "name": "sst-http",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
+  "version": "0.1.0",
+  "description": "Decorator-based routing for SST v3 with a single Lambda and Firebase JWT authorizer.",
+  "license": "MIT",
   "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.11.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/<you>/sst-http.git"
+  },
+  "bugs": {
+    "url": "https://github.com/<you>/sst-http/issues"
+  },
+  "homepage": "https://github.com/<you>/sst-http#readme",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./infra": {
+      "types": "./dist/infra.d.ts",
+      "import": "./dist/infra.js",
+      "require": "./dist/infra.cjs"
+    }
+  },
+  "bin": {
+    "sst-http": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9",
+  "scripts": {
+    "build": "tsup src/index.ts src/infra.ts src/cli.ts --dts --format esm,cjs --clean",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "prepublishOnly": "pnpm build",
+    "release": "pnpm build && pnpm publish --access public"
+  },
   "dependencies": {
-    "sst": "3.17.14"
+    "path-to-regexp": "^8.2.0",
+    "reflect-metadata": "^0.2.2",
+    "ts-morph": "^23.0.0",
+    "tslib": "^2.6.2"
+  },
+  "peerDependencies": {
+    "sst": "^3.0.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/aws-lambda": "8.10.155"
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
