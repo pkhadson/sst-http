@@ -1,0 +1,25 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/example/{id}",
+      "auth": {
+        "type": "none"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/example/{id}",
+      "auth": {
+        "type": "none"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/healthcheck",
+      "auth": {
+        "type": "none"
+      }
+    }
+  ]
+}

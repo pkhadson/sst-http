@@ -16,17 +16,22 @@ Create routed functions anywhere in your project – no controller classes requi
 // src/routes/users.ts
 import { Get, Post, FirebaseAuth, json } from "sst-http";
 
-@Get("/users/:id")
-@FirebaseAuth()
-export async function getUser({ params }: { params: { id: string } }) {
-  return json(200, { id: params.id });
+export class UserRoutes {
+  @Get("/users/{id}")
+  @FirebaseAuth()
+  static async getUser({ params }: { params: { id: string } }) {
+    return json(200, { id: params.id });
+  }
+
+  @Post("/users")
+  @FirebaseAuth({ optional: false })
+  static async createUser({ body }: { body: { email: string } }) {
+    return json(201, { ok: true, email: body.email });
+  }
 }
 
-@Post("/users")
-@FirebaseAuth({ optional: false })
-export async function createUser({ body }: { body: { email: string } }) {
-  return json(201, { ok: true, email: body.email });
-}
+export const getUser = UserRoutes.getUser;
+export const createUser = UserRoutes.createUser;
 ```
 
 Enable name-based inference once at bootstrap if you prefer omitting explicit path strings:
@@ -45,12 +50,19 @@ import { z } from "zod";
 
 const CreateTodo = z.object({ title: z.string().min(1) });
 
-@Post("/todos")
-export function createTodo(@Body(CreateTodo) payload: z.infer<typeof CreateTodo>) {
-  // payload is validated JSON
-  return { statusCode: 201, body: JSON.stringify(payload) };
+export class TodoRoutes {
+  @Post("/todos")
+  static createTodo(@Body(CreateTodo) payload: z.infer<typeof CreateTodo>) {
+    // payload is validated JSON
+    return { statusCode: 201, body: JSON.stringify(payload) };
+  }
 }
+
+export const createTodo = TodoRoutes.createTodo;
 ```
+
+> **Note**
+> API Gateway route keys expect `{param}` placeholders. The router accepts either `{param}` or `:param` at runtime, but manifests and infra wiring emit `{param}` so your deployed routes line up with AWS.
 
 ## Single Lambda Entry
 

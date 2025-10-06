@@ -8,6 +8,7 @@ import {
   SyntaxKind,
   type Decorator,
   type FunctionDeclaration,
+  type MethodDeclaration,
 } from "ts-morph";
 import type { HttpMethod, RoutesManifest, RoutesManifestRoute } from "./types";
 
@@ -65,6 +66,24 @@ async function runScan(args: string[]): Promise<void> {
       const route = extractRoute(fn, options.inferName);
       if (route) {
         manifest.routes.push(route);
+      }
+    }
+
+    for (const cls of sourceFile.getClasses()) {
+      if (!cls.isExported() && !cls.isDefaultExport()) {
+        continue;
+      }
+
+      for (const method of cls.getMethods()) {
+        // only consider static methods to avoid instance bindings
+        if (!method.isStatic()) {
+          continue;
+        }
+
+        const route = extractRoute(method, options.inferName);
+        if (route) {
+          manifest.routes.push(route);
+        }
       }
     }
   }
@@ -137,12 +156,11 @@ function parseScanArgs(args: string[]): {
   return result;
 }
 
-function extractRoute(fn: FunctionDeclaration, inferName: boolean): RoutesManifestRoute | undefined {
-  const decorators = fn
-    .getModifiers()
-    .filter(Node.isDecorator)
-    .map((mod) => mod.asKind(SyntaxKind.Decorator))
-    .filter((d): d is Decorator => d !== undefined);
+function extractRoute(
+  fn: FunctionDeclaration | MethodDeclaration,
+  inferName: boolean,
+): RoutesManifestRoute | undefined {
+  const decorators = collectDecorators(fn);
 
   const methodDecorators = decorators.filter((decorator) => {
     const name = decorator.getName();
@@ -177,6 +195,17 @@ function extractRoute(fn: FunctionDeclaration, inferName: boolean): RoutesManife
     path,
     auth,
   };
+}
+
+function collectDecorators(fn: FunctionDeclaration | MethodDeclaration): Decorator[] {
+  if (Node.isMethodDeclaration(fn)) {
+    return fn.getDecorators();
+  }
+
+  return fn
+    .getModifiers()
+    .filter(Node.isDecorator)
+    .map((modifier) => modifier.asKindOrThrow(SyntaxKind.Decorator));
 }
 
 function readPath(decorator: Decorator): string | undefined {
@@ -262,7 +291,7 @@ function readFirebaseAuth(decorator: Decorator): RoutesManifestRoute["auth"] {
   return auth;
 }
 
-function inferPathFromName(fn: FunctionDeclaration): string | undefined {
+function inferPathFromName(fn: FunctionDeclaration | MethodDeclaration): string | undefined {
   const name = fn.getName();
   if (!name) {
     return undefined;

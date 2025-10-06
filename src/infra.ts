@@ -1,7 +1,41 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { HttpMethod, RoutesManifest } from "./types";
-import * as sst from "sst";
+
+type SstApiGateway = {
+  route?: (routeKey: string, config: Record<string, unknown>) => unknown;
+  addRoutes?: (routes: Record<string, Record<string, unknown>>) => unknown;
+  addRoute?: (routeKey: string, config: Record<string, unknown>) => unknown;
+  addAuthorizers?: (authorizers: Record<string, unknown>) => unknown;
+  authorizer?: (name: string, payload: unknown) => unknown;
+  authorizers?: Record<string, unknown>;
+  url?: string;
+};
+
+type SstAwsNamespace = {
+  ApiGatewayV2: new (name: string, args?: unknown, opts?: unknown) => SstApiGateway;
+  ApiGateway: new (name: string, args?: unknown, opts?: unknown) => SstApiGateway;
+};
+
+type AwsSource = {
+  sst?: {
+    aws?: SstAwsNamespace;
+  };
+};
+
+function ensureSstAws(source?: AwsSource): SstAwsNamespace {
+  if (source?.sst?.aws) {
+    return source.sst.aws;
+  }
+
+  const aws = (globalThis as { sst?: { aws?: SstAwsNamespace } }).sst?.aws;
+  if (!aws) {
+    throw new Error(
+      "SST aws namespace is not available. Ensure this code runs within an SST config.",
+    );
+  }
+  return aws;
+}
 
 export type RegisterRouteConfig = {
   handler: string;
@@ -85,11 +119,15 @@ export function loadRoutesManifest(filePath: string): RoutesManifest {
   return manifest;
 }
 
-export function httpApiAdapter(args?: {
+type AdapterArgs = AwsSource & {
+  api?: SstApiGateway;
   apiName?: string;
-  apiArgs?: ConstructorParameters<typeof sst.aws.ApiGatewayV2>[1];
-}) {
-  const api = new (sst as any).aws.ApiGatewayV2(args?.apiName ?? "HttpApi", args?.apiArgs);
+  apiArgs?: unknown;
+};
+
+export function httpApiAdapter(args?: AdapterArgs) {
+  const aws = args?.api ? undefined : ensureSstAws(args);
+  const api = args?.api ?? new aws!.ApiGatewayV2(args?.apiName ?? "HttpApi", args?.apiArgs);
   const authorizers = new Map<string, unknown>();
 
   const ensureJwtAuthorizer: EnsureJwtAuthorizer = (name, cfg) => {
@@ -171,11 +209,9 @@ export function httpApiAdapter(args?: {
   };
 }
 
-export function restApiAdapter(args?: {
-  apiName?: string;
-  apiArgs?: ConstructorParameters<typeof sst.aws.ApiGateway>[1];
-}) {
-  const api = new (sst as any).aws.ApiGateway(args?.apiName ?? "RestApi", args?.apiArgs);
+export function restApiAdapter(args?: AdapterArgs) {
+  const aws = args?.api ? undefined : ensureSstAws(args);
+  const api = args?.api ?? new aws!.ApiGateway(args?.apiName ?? "RestApi", args?.apiArgs);
   const authorizers = new Map<string, unknown>();
 
   const ensureJwtAuthorizer: EnsureJwtAuthorizer = (name, cfg) => {
