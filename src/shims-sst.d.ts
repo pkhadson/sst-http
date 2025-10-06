@@ -1,3 +1,3 @@
 declare module "sst" {
-  export const aws: Record<string, any>;
+  export const aws: Record<string, unknown>;
 }

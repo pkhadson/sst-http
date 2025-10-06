@@ -135,7 +135,7 @@ export function httpApiAdapter(args?: AdapterArgs) {
       return authorizers.get(name);
     }
 
-    const apiAny = api as any;
+    const apiAny = api;
     let ref: unknown = name;
 
     const payload = {
@@ -164,7 +164,7 @@ export function httpApiAdapter(args?: AdapterArgs) {
   };
 
   const registerRoute: RegisterRoute = (method, path, config) => {
-    const apiAny = api as any;
+    const apiAny = api;
     const routeKey = `${method} ${path}`;
 
     const routeConfig: Record<string, unknown> = {
@@ -219,7 +219,7 @@ export function restApiAdapter(args?: AdapterArgs) {
       return authorizers.get(name);
     }
 
-    const apiAny = api as any;
+    const apiAny = api;
     let ref: unknown = name;
 
     const payload = {
@@ -248,7 +248,7 @@ export function restApiAdapter(args?: AdapterArgs) {
   };
 
   const registerRoute: RegisterRoute = (method, path, config) => {
-    const apiAny = api as any;
+    const apiAny = api;
     const routeKey = `${method} ${path}`;
 
     const routeConfig: Record<string, unknown> = {
