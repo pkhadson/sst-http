@@ -140,27 +140,39 @@ export function httpApiAdapter(args?: AdapterArgs) {
     }
 
     const apiAny = api;
-    let ref: unknown = name;
+    let ref: unknown = undefined;
 
-    const payload = {
-      type: "jwt",
-      jwt: {
-        issuer: cfg.issuer,
-        audience: cfg.audiences,
-      },
-    };
-
-    if (typeof apiAny.addAuthorizers === "function") {
-      apiAny.addAuthorizers({
-        [name]: payload,
+    if (typeof (apiAny as Record<string, unknown>)["addAuthorizer"] === "function") {
+      // Prefer official addAuthorizer API which returns an authorizer with .id
+      const created = (apiAny as unknown as {
+        addAuthorizer: (args: { name: string; jwt: { issuer: string; audiences: string[] } }) => { id: unknown };
+      }).addAuthorizer({
+        name,
+        jwt: { issuer: cfg.issuer, audiences: cfg.audiences },
       });
+      ref = (created as { id: unknown }).id;
+    } else if (typeof apiAny.addAuthorizers === "function") {
+      // Legacy shape
+      apiAny.addAuthorizers({
+        [name]: {
+          type: "jwt",
+          jwt: {
+            issuer: cfg.issuer,
+            audience: cfg.audiences,
+          },
+        },
+      });
+      ref = name;
     } else if (typeof apiAny.authorizer === "function") {
-      ref = apiAny.authorizer(name, payload);
+      ref = apiAny.authorizer(name, {
+        type: "jwt",
+        jwt: {
+          issuer: cfg.issuer,
+          audience: cfg.audiences,
+        },
+      });
     } else {
-      apiAny.authorizers = {
-        ...(apiAny.authorizers ?? {}),
-        [name]: payload,
-      };
+      throw new Error("ApiGatewayV2 instance does not support authorizers");
     }
 
     authorizers.set(name, ref);
