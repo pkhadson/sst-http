@@ -3,7 +3,11 @@ import { resolve } from "node:path";
 import type { HttpMethod, RoutesManifest } from "./types";
 
 type SstApiGateway = {
-  route?: (routeKey: string, config: Record<string, unknown>) => unknown;
+  route?: (
+    routeKey: string,
+    handlerOrConfig: unknown,
+    args?: Record<string, unknown>,
+  ) => unknown;
   addRoutes?: (routes: Record<string, Record<string, unknown>>) => unknown;
   addRoute?: (routeKey: string, config: Record<string, unknown>) => unknown;
   addAuthorizers?: (authorizers: Record<string, unknown>) => unknown;
@@ -38,7 +42,7 @@ function ensureSstAws(source?: AwsSource): SstAwsNamespace {
 }
 
 export type RegisterRouteConfig = {
-  handler: string;
+  handler: unknown;
   protected: boolean;
   authorizer?: {
     name: string;
@@ -62,7 +66,7 @@ export type EnsureJwtAuthorizer = (
 export function wireApiFromManifest(
   manifest: RoutesManifest,
   opts: {
-    handlerFile: string;
+    handler: unknown;
     firebaseProjectId: string;
     registerRoute: RegisterRoute;
     ensureJwtAuthorizer: EnsureJwtAuthorizer;
@@ -100,7 +104,7 @@ export function wireApiFromManifest(
       : undefined;
 
     opts.registerRoute(route.method, path, {
-      handler: opts.handlerFile,
+      handler: opts.handler,
       protected: isProtected,
       authorizer: authConfig,
     });
@@ -167,35 +171,48 @@ export function httpApiAdapter(args?: AdapterArgs) {
     const apiAny = api;
     const routeKey = `${method} ${path}`;
 
-    const routeConfig: Record<string, unknown> = {
-      handler: config.handler,
-    };
+    const asAny = config.handler as Record<string, unknown> | string | undefined;
+    const handlerInput =
+      typeof asAny === "string"
+        ? asAny
+        : asAny && typeof (asAny as Record<string, unknown>).arn !== "undefined"
+          ? (asAny as Record<string, unknown>).arn
+          : asAny && typeof (asAny as Record<string, unknown>).handler === "string"
+            ? (asAny as Record<string, unknown>).handler
+            : asAny === undefined
+              ? undefined
+              : (() => {
+                throw new Error("Unsupported handler type: provide a handler string, FunctionArgs, or a Function ARN/output");
+              })();
 
+    const args: Record<string, unknown> = {};
     if (config.protected && config.authorizer) {
-      routeConfig.authorizer = config.authorizer.ref ?? config.authorizer.name;
-      routeConfig.authorizationType = "JWT";
-      if (config.authorizer.roles && config.authorizer.roles.length > 0) {
-        routeConfig.authorizationScopes = config.authorizer.roles;
-      }
-      if (config.authorizer.optional) {
-        (routeConfig as Record<string, unknown>).authorizerOptional = true;
-      }
+      args.auth = {
+        jwt: {
+          authorizer: (config.authorizer.ref ?? config.authorizer.name) as unknown,
+          scopes: config.authorizer.roles,
+        },
+      };
     }
 
     if (typeof apiAny.route === "function") {
-      apiAny.route(routeKey, routeConfig);
+      apiAny.route(routeKey, handlerInput, args);
       return;
     }
 
     if (typeof apiAny.addRoutes === "function") {
+      // Fallback for older APIs: pass merged config
       apiAny.addRoutes({
-        [routeKey]: routeConfig,
+        [routeKey]: {
+          handler: handlerInput,
+          ...args,
+        },
       });
       return;
     }
 
     if (typeof apiAny.addRoute === "function") {
-      apiAny.addRoute(routeKey, routeConfig);
+      apiAny.addRoute(routeKey, { handler: handlerInput, ...args });
       return;
     }
 
@@ -251,35 +268,47 @@ export function restApiAdapter(args?: AdapterArgs) {
     const apiAny = api;
     const routeKey = `${method} ${path}`;
 
-    const routeConfig: Record<string, unknown> = {
-      handler: config.handler,
-    };
+    const asAny = config.handler as Record<string, unknown> | string | undefined;
+    const handlerInput =
+      typeof asAny === "string"
+        ? asAny
+        : asAny && typeof (asAny as Record<string, unknown>).arn !== "undefined"
+          ? (asAny as Record<string, unknown>).arn
+          : asAny && typeof (asAny as Record<string, unknown>).handler === "string"
+            ? (asAny as Record<string, unknown>).handler
+            : asAny === undefined
+              ? undefined
+              : (() => {
+                throw new Error("Unsupported handler type: provide a handler string, FunctionArgs, or a Function ARN/output");
+              })();
 
+    const args: Record<string, unknown> = {};
     if (config.protected && config.authorizer) {
-      routeConfig.authorizer = config.authorizer.ref ?? config.authorizer.name;
-      routeConfig.authorizationType = "JWT";
-      if (config.authorizer.roles && config.authorizer.roles.length > 0) {
-        routeConfig.authorizationScopes = config.authorizer.roles;
-      }
-      if (config.authorizer.optional) {
-        (routeConfig as Record<string, unknown>).authorizerOptional = true;
-      }
+      args.auth = {
+        jwt: {
+          authorizer: (config.authorizer.ref ?? config.authorizer.name) as unknown,
+          scopes: config.authorizer.roles,
+        },
+      };
     }
 
     if (typeof apiAny.route === "function") {
-      apiAny.route(routeKey, routeConfig);
+      apiAny.route(routeKey, handlerInput, args);
       return;
     }
 
     if (typeof apiAny.addRoutes === "function") {
       apiAny.addRoutes({
-        [routeKey]: routeConfig,
+        [routeKey]: {
+          handler: handlerInput,
+          ...args,
+        },
       });
       return;
     }
 
     if (typeof apiAny.addRoute === "function") {
-      apiAny.addRoute(routeKey, routeConfig);
+      apiAny.addRoute(routeKey, { handler: handlerInput, ...args });
       return;
     }
 

@@ -1,4 +1,4 @@
-import { Get, Post, json } from "sst-http";
+import { FirebaseAuth, Get, Post, json } from "sst-http";
 
 type ExampleContext = {
   params: {
@@ -6,15 +6,23 @@ type ExampleContext = {
   };
 };
 
+const instanceId = Math.random().toString(36).substring(2, 15);
+
 export class ExampleRoutes {
   @Post("/example/{id}")
   static createExample({ params }: ExampleContext) {
-    return json(200, { id: params.id });
+    return json(200, { id: params.id, instanceId });
   }
 
   @Get("/example/{id}")
   static getExample({ params }: ExampleContext) {
-    return json(200, { id: params.id });
+    return json(200, { id: params.id, instanceId });
+  }
+
+  @Get('/auth/example')
+  @FirebaseAuth()
+  static getAuthExample() {
+    return json(200, { instanceId });
   }
 }
 

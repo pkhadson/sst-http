@@ -16,27 +16,25 @@ export default $config({
       httpApiAdapter,
     } = await import("sst-http/infra");
 
+    const singleHandler = new sst.aws.Function("SingleHandler", {
+      handler: "src/server.handler",
+      runtime: "nodejs20.x",
+      timeout: "10 seconds",
+      memory: "512 MB",
+    });
+
     const manifest = loadRoutesManifest("routes.manifest.json");
 
-    const api = new sst.aws.ApiGatewayV2("ExampleApi", {
-      transform: {
-        route: {
-          handler: {
-            runtime: "nodejs20.x",
-            timeout: "10 seconds",
-            memory: "512 MB",
-          },
-        },
-      },
-    });
+    const api = new sst.aws.ApiGatewayV2("ExampleApi");
 
     const { registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ api });
 
     wireApiFromManifest(manifest, {
-      handlerFile: "src/server.handler",
+      handler: singleHandler,
       firebaseProjectId: process.env.FIREBASE_PROJECT_ID ?? "",
       registerRoute,
       ensureJwtAuthorizer,
+      
     });
 
     return {

@@ -2,6 +2,13 @@
   "routes": [
     {
       "method": "GET",
+      "path": "/auth/example",
+      "auth": {
+        "type": "firebase"
+      }
+    },
+    {
+      "method": "GET",
       "path": "/example/{id}",
       "auth": {
         "type": "none"
