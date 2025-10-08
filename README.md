@@ -97,7 +97,7 @@ Mark a route with `@FirebaseAuth()` and the manifest records it as protected. Th
 
 ## Wire API Gateway
 
-`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below uses the HTTP API adapter inside `sst.config.ts`.
+`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below wires all routes to a single Lambda function inside `sst.config.ts`.
 
 ```ts
 // sst.config.ts
@@ -113,23 +113,18 @@ export default $config({
     } = await import("sst-http/infra");
 
     const manifest = loadRoutesManifest("routes.manifest.json");
-    const { api, registerRoute, ensureJwtAuthorizer } = httpApiAdapter({
-      apiName: "Api",
-      apiArgs: {
-        transform: {
-          route: {
-            handler: {
-              runtime: "nodejs20.x",
-              timeout: "10 seconds",
-              memory: "512 MB",
-            },
-          },
-        },
-      },
+    const { api, registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ apiName: "Api" });
+
+    // Single Lambda for all routes
+    const handler = new sst.aws.Function("Handler", {
+      handler: "src/server.handler",
+      runtime: "nodejs20.x",
+      timeout: "10 seconds",
+      memory: "512 MB",
     });
 
     wireApiFromManifest(manifest, {
-      handlerFile: "src/server.handler",
+      handler,
       firebaseProjectId: process.env.FIREBASE_PROJECT_ID!,
       registerRoute,
       ensureJwtAuthorizer,
@@ -141,6 +136,9 @@ export default $config({
 ```
 
 Swap in `restApiAdapter` if you prefer API Gateway REST APIs—the wiring contract is identical.
+
+> Tip
+> Set `FIREBASE_PROJECT_ID` in your environment when using `@FirebaseAuth()` so the JWT authorizer is configured correctly.
 
 ## Publishing
 
