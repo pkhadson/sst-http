@@ -2,19 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { HttpMethod, RoutesManifest } from "./types";
 
-type SstApiGateway = {
-  route?: (
-    routeKey: string,
-    handlerOrConfig: unknown,
-    args?: Record<string, unknown>,
-  ) => unknown;
-  addRoutes?: (routes: Record<string, Record<string, unknown>>) => unknown;
-  addRoute?: (routeKey: string, config: Record<string, unknown>) => unknown;
-  addAuthorizers?: (authorizers: Record<string, unknown>) => unknown;
-  authorizer?: (name: string, payload: unknown) => unknown;
-  authorizers?: Record<string, unknown>;
-  url?: string;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SstApiGateway = any;
 
 type SstAwsNamespace = {
   ApiGatewayV2: new (name: string, args?: unknown, opts?: unknown) => SstApiGateway;
