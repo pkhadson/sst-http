@@ -6,12 +6,12 @@
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<you>/sst-http.git"
+    "url": "git+https://github.com/pkhadson/sst-http.git"
   },
   "bugs": {
-    "url": "https://github.com/<you>/sst-http/issues"
+    "url": "https://github.com/pkhadson/sst-http/issues"
   },
-  "homepage": "https://github.com/<you>/sst-http#readme",
+  "homepage": "https://github.com/pkhadson/sst-http#readme",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
