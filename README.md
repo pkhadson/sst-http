@@ -46,7 +46,7 @@ Parameter decorators are available when you want granular control:
 
 ```ts
 import { Body, Post } from "sst-http";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const CreateTodo = z.object({ title: z.string().min(1) });
 

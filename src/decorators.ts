@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from "zod";
+import type { ZodTypeAny } from "zod/v4";
 import type { FirebaseAuthOptions, Handler, HttpMethod, ParameterType } from "./types";
 import { registerFirebaseAuth, registerParameter, registerRoute } from "./registry";
 

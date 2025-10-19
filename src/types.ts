@@ -4,7 +4,7 @@ import type {
   APIGatewayProxyResult,
   APIGatewayProxyResultV2,
 } from "aws-lambda";
-import type { ZodTypeAny } from "zod";
+import type { ZodTypeAny } from "zod/v4";
 
 export type HttpMethod =
   | "GET"
