@@ -213,6 +213,10 @@ function buildHandlerArguments(
         args[meta.index] = ctx.response;
         break;
       }
+      case "auth": {
+        args[meta.index] = ctx.auth;
+        break;
+      }
       default: {
         args[meta.index] = ctx;
       }

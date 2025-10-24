@@ -65,6 +65,10 @@ export function FirebaseAuth(options?: FirebaseAuthOptions): LegacyDecorator {
   };
 }
 
+export function Auth(): LegacyParameterDecorator {
+  return createParameterDecorator("auth");
+}
+
 export function Body(schema?: ZodTypeAny): LegacyParameterDecorator {
   return createParameterDecorator("body", schema);
 }

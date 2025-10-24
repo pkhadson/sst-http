@@ -15,6 +15,7 @@ export {
   Head,
   Options,
   FirebaseAuth,
+  Auth,
   Body,
   Query,
   Param,
@@ -31,6 +32,7 @@ export type {
   HttpMethod,
   FirebaseAuthOptions,
   FirebaseAuthMetadata,
+  FirebaseClaims,
   ResponseLike,
   RouteOptions,
 } from "./types";
