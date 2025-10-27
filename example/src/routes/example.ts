@@ -1,4 +1,4 @@
-import { FirebaseAuth, Get, Post, json } from "sst-http";
+import { Auth, FirebaseAuth, FirebaseClaims, Get, Post, json } from "sst-http";
 
 type ExampleContext = {
   params: {
@@ -21,8 +21,8 @@ export class ExampleRoutes {
 
   @Get('/auth/example')
   @FirebaseAuth()
-  static getAuthExample() {
-    return json(200, { instanceId });
+  static getAuthExample(@Auth() auth: FirebaseClaims) {
+    return json(200, { instanceId, auth });
   }
 }
 

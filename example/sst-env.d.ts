@@ -5,14 +5,6 @@
 
 declare module "sst" {
   export interface Resource {
-    "ExampleApi": {
-      "type": "sst.aws.ApiGatewayV2"
-      "url": string
-    }
-    "SingleHandler": {
-      "name": string
-      "type": "sst.aws.Function"
-    }
   }
 }
 /// <reference path="sst-env.d.ts" />
