@@ -341,7 +341,7 @@ function extractAuthClaims(event: LambdaEvent, entry: RouteRegistryEntry): Fireb
   return claims ?? undefined;
 }
 
-function handleError(error: unknown, preferV2: boolean): LambdaResult {
+export function handleError(error: unknown, preferV2: boolean): LambdaResult {
   if (error instanceof HttpError) {
     return formatResponse({
       statusCode: error.statusCode,

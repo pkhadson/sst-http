@@ -4,6 +4,7 @@ export {
   text,
   noContent,
   HttpError,
+  handleError,
 } from "./runtime";
 
 export {
