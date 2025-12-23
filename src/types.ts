@@ -31,6 +31,7 @@ export type ParameterType =
   | "query"
   | "param"
   | "headers"
+  | "header"
   | "req"
   | "res"
   | "auth";
@@ -39,6 +40,7 @@ export type ParameterMetadata = {
   index: number;
   type: ParameterType;
   schema?: ZodTypeAny;
+  name?: string;
 };
 
 export type ResponseLike =

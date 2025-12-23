@@ -21,6 +21,7 @@ export {
   Query,
   Param,
   Headers,
+  Header,
   Req,
   Res,
 } from "./decorators";

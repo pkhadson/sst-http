@@ -197,15 +197,19 @@ function buildHandlerArguments(
         break;
       }
       case "query": {
-        args[meta.index] = ctx.query;
+        args[meta.index] = meta.name ? ctx.query[meta.name] : ctx.query;
         break;
       }
       case "param": {
-        args[meta.index] = ctx.params;
+        args[meta.index] = meta.name ? ctx.params[meta.name] : ctx.params;
         break;
       }
       case "headers": {
         args[meta.index] = ctx.headers;
+        break;
+      }
+      case "header": {
+        args[meta.index] = meta.name ? ctx.headers[meta.name.toLowerCase()] : ctx.headers;
         break;
       }
       case "req": {

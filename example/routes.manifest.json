@@ -9,6 +9,13 @@
     },
     {
       "method": "GET",
+      "path": "/example/:id",
+      "auth": {
+        "type": "none"
+      }
+    },
+    {
+      "method": "GET",
       "path": "/example/{id}",
       "auth": {
         "type": "none"
@@ -17,6 +24,20 @@
     {
       "method": "POST",
       "path": "/example/{id}",
+      "auth": {
+        "type": "none"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/example/header",
+      "auth": {
+        "type": "none"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/example/query",
       "auth": {
         "type": "none"
       }

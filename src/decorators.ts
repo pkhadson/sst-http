@@ -39,13 +39,20 @@ function createRouteDecorator(method: HttpMethod) {
     };
 }
 
-function createParameterDecorator(type: ParameterType, schema?: ZodTypeAny): LegacyParameterDecorator {
+function createParameterDecorator(
+  type: ParameterType,
+  options?: {
+    schema?: ZodTypeAny;
+    name?: string;
+  },
+): LegacyParameterDecorator {
   return (target, propertyKey, parameterIndex) => {
     const handler = resolveHandler(target, propertyKey);
     registerParameter(handler, {
       index: parameterIndex,
       type,
-      schema,
+      schema: options?.schema,
+      name: options?.name,
     });
   };
 }
@@ -70,19 +77,23 @@ export function Auth(): LegacyParameterDecorator {
 }
 
 export function Body(schema?: ZodTypeAny): LegacyParameterDecorator {
-  return createParameterDecorator("body", schema);
+  return createParameterDecorator("body", { schema });
 }
 
-export function Query(): LegacyParameterDecorator {
-  return createParameterDecorator("query");
+export function Query(name?: string): LegacyParameterDecorator {
+  return createParameterDecorator("query", { name });
 }
 
-export function Param(): LegacyParameterDecorator {
-  return createParameterDecorator("param");
+export function Param(name?: string): LegacyParameterDecorator {
+  return createParameterDecorator("param", { name });
 }
 
 export function Headers(): LegacyParameterDecorator {
   return createParameterDecorator("headers");
+}
+
+export function Header(name: string): LegacyParameterDecorator {
+  return createParameterDecorator("header", { name });
 }
 
 export function Req(): LegacyParameterDecorator {
