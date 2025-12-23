@@ -16,6 +16,8 @@ import type {
   HttpMethod,
 } from "./types";
 
+const HTTP_ERROR_MARKER = Symbol.for("sst-http.HttpError");
+
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly headers?: Record<string, string>;
@@ -28,6 +30,7 @@ export class HttpError extends Error {
   }) {
     super(message);
     this.name = "HttpError";
+    Object.defineProperty(this, HTTP_ERROR_MARKER, { value: true });
     this.statusCode = statusCode;
     this.headers = options?.headers;
     this.details = options?.details;
@@ -341,8 +344,18 @@ function extractAuthClaims(event: LambdaEvent, entry: RouteRegistryEntry): Fireb
   return claims ?? undefined;
 }
 
+function isHttpError(error: unknown): error is HttpError {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const marker = (error as Record<symbol, unknown>)[HTTP_ERROR_MARKER] === true;
+  const named = (error as { name?: unknown }).name === "HttpError";
+  const status = typeof (error as { statusCode?: unknown }).statusCode === "number";
+  return status && (marker || named);
+}
+
 export function handleError(error: unknown, preferV2: boolean): LambdaResult {
-  if (error instanceof HttpError) {
+  if (isHttpError(error)) {
     return formatResponse({
       statusCode: error.statusCode,
       headers: {
