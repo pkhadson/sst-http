@@ -1,4 +1,5 @@
 import { match, type MatchFunction } from "path-to-regexp";
+import { normalizeRouterPath } from "./paths";
 import type { HttpMethod, RouteRegistryEntry } from "./types";
 
 type RouteMatcher = {
@@ -23,7 +24,7 @@ export class Router {
   constructor(entries: RouteRegistryEntry[]) {
     this.routes = entries.map((entry) => ({
       entry,
-      matcher: match(normalizeRoutePath(entry.path), { decode: decodeURIComponent }),
+      matcher: match(normalizeRouterPath(entry.path), { decode: decodeURIComponent }),
     }));
   }
 
@@ -64,8 +65,4 @@ function normalizeParams(params: Record<string, string | string[]>): Record<stri
     normalized[key] = Array.isArray(value) ? value[value.length - 1] ?? "" : value;
   }
   return normalized;
-}
-
-function normalizeRoutePath(path: string): string {
-  return path.replace(/\{([^/{}]+)\}/g, ":$1");
 }

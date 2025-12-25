@@ -10,6 +10,7 @@ import {
   type FunctionDeclaration,
   type MethodDeclaration,
 } from "ts-morph";
+import { normalizeApiGatewayPath } from "./paths";
 import type { HttpMethod, RoutesManifest, RoutesManifestRoute } from "./types";
 
 const METHOD_DECORATORS: Record<string, HttpMethod> = {
@@ -192,7 +193,7 @@ function extractRoute(
 
   return {
     method,
-    path,
+    path: normalizeApiGatewayPath(path),
     auth,
   };
 }

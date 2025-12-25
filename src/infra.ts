@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { normalizeApiGatewayPath } from "./paths";
 import type { HttpMethod, RoutesManifest } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,7 +83,8 @@ export function wireApiFromManifest(
 
   for (const route of manifest.routes) {
     const isProtected = route.auth.type === "firebase";
-    const path = route.path.startsWith("/") ? route.path : `/${route.path}`;
+    const rawPath = route.path.startsWith("/") ? route.path : `/${route.path}`;
+    const path = normalizeApiGatewayPath(rawPath);
     const authConfig = isProtected && route.auth.type === "firebase"
       ? {
           name: "firebase",
@@ -170,7 +172,8 @@ export function httpApiAdapter(args?: AdapterArgs) {
 
   const registerRoute: RegisterRoute = (method, path, config) => {
     const apiAny = api;
-    const routeKey = `${method} ${path}`;
+    const normalizedPath = normalizeApiGatewayPath(path);
+    const routeKey = `${method} ${normalizedPath}`;
 
     const asAny = config.handler as Record<string, unknown> | string | undefined;
     const handlerInput =
@@ -267,7 +270,8 @@ export function restApiAdapter(args?: AdapterArgs) {
 
   const registerRoute: RegisterRoute = (method, path, config) => {
     const apiAny = api;
-    const routeKey = `${method} ${path}`;
+    const normalizedPath = normalizeApiGatewayPath(path);
+    const routeKey = `${method} ${normalizedPath}`;
 
     const asAny = config.handler as Record<string, unknown> | string | undefined;
     const handlerInput =
