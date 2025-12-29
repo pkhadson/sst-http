@@ -159,6 +159,7 @@ export function createHandler() {
         try {
           bodyValue = (schema as { parse: (value: unknown) => unknown }).parse(current);
         } catch (error) {
+          console.error("[ERROR] Body validation failed", error);
           throw new HttpError(400, "Body validation failed", { cause: error });
         }
       }
