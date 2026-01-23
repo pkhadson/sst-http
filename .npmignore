@@ -1,5 +1,5 @@
 src/
-example/
+examples/
 node_modules/
 *.log
 *.tgz
@@ -16,4 +16,3 @@ sst.config.ts
 pnpm-lock.yaml
 .github/
 .git/
-

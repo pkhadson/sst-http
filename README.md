@@ -1,6 +1,6 @@
 # sst-http
 
-Decorator-based HTTP routing for [SST v3](https://sst.dev) that keeps your app on a single Lambda handler while still wiring routes directly into API Gateway. Build routes with NestJS-style decorators, secure them with Firebase JWT authorizers, and generate an infra-ready manifest from your source.
+Decorator-based HTTP routing and EventBridge helpers for SST v3. Keep a single Lambda for your API, scan routes into a manifest, and wire everything into API Gateway. The bus helpers let you subscribe handlers with `@On()` and publish events from anywhere.
 
 ## Install
 
@@ -8,13 +8,44 @@ Decorator-based HTTP routing for [SST v3](https://sst.dev) that keeps your app o
 pnpm add sst-http
 ```
 
-## Define Routes
+## Import style
 
-Create routed functions anywhere in your project – no controller classes required.
+You can keep using the root entrypoint, or import by domain:
+
+```ts
+import { createHandler, Get, Post } from "sst-http/http";
+import { On, publish } from "sst-http/bus";
+
+// Root entrypoint also works
+import { createHandler as createHttpHandler } from "sst-http";
+```
+
+## Examples
+
+The repo ships three SST v3 examples under `examples/`:
+
+- `examples/http`: four HTTP routes (path param, query string, JSON body, plus a ping route).
+- `examples/bus-publisher`: exposes `GET /` and publishes a `demo.created` event to the bus.
+- `examples/bus-receiver`: a single `@On("demo.created")` handler that receives the event.
+
+To run one of them:
+
+```bash
+cd examples/http
+pnpm install
+pnpm run routes:scan
+pnpm run dev
+```
+
+For the bus pair, you can deploy either example in any order since events target the default bus.
+
+## HTTP routes
+
+Create routed functions anywhere in your project—no controllers required.
 
 ```ts
 // src/routes/users.ts
-import { Get, Post, FirebaseAuth, json } from "sst-http";
+import { Get, Post, FirebaseAuth, json } from "sst-http/http";
 
 export class UserRoutes {
   @Get("/users/{id}")
@@ -34,18 +65,18 @@ export const getUser = UserRoutes.getUser;
 export const createUser = UserRoutes.createUser;
 ```
 
-Enable name-based inference once at bootstrap if you prefer omitting explicit path strings:
+Enable name-based inference if you prefer omitting explicit paths:
 
 ```ts
-import { configureRoutes } from "sst-http";
+import { configureRoutes } from "sst-http/http";
 
 configureRoutes({ inferPathFromName: true });
 ```
 
-Parameter decorators are available when you want granular control:
+### Parameter decorators
 
 ```ts
-import { Body, Post } from "sst-http";
+import { Body, Post } from "sst-http/http";
 import { z } from "zod/v4";
 
 const CreateTodo = z.object({ title: z.string().min(1) });
@@ -53,7 +84,6 @@ const CreateTodo = z.object({ title: z.string().min(1) });
 export class TodoRoutes {
   @Post("/todos")
   static createTodo(@Body(CreateTodo) payload: z.infer<typeof CreateTodo>) {
-    // payload is validated JSON
     return { statusCode: 201, body: JSON.stringify(payload) };
   }
 }
@@ -62,16 +92,16 @@ export const createTodo = TodoRoutes.createTodo;
 ```
 
 > **Note**
-> API Gateway route keys expect `{param}` placeholders. The router accepts either `{param}` or `:param` at runtime, but manifests and infra wiring emit `{param}` so your deployed routes line up with AWS.
+> API Gateway route keys expect `{param}` placeholders. The router accepts `{param}` or `:param` at runtime, but manifests and infra wiring emit `{param}` so your deployed routes line up with AWS.
 
-## Single Lambda Entry
+## Single Lambda entry
 
-All decorated modules register themselves on import. The single exported handler performs routing and response formatting for both REST and HTTP API Gateway payloads.
+All decorated modules register themselves on import. The handler handles routing for both REST and HTTP API Gateway payloads.
 
 ```ts
 // src/server.ts
 import "reflect-metadata";
-import { createHandler } from "sst-http";
+import { createHandler } from "sst-http/http";
 
 import "./routes/users";
 import "./routes/health";
@@ -79,25 +109,56 @@ import "./routes/health";
 export const handler = createHandler();
 ```
 
-Helpers such as `json()`, `text()`, and `noContent()` are available for concise responses, and thrown `HttpError` instances are turned into normalized JSON error payloads.
+Helpers such as `json()`, `text()`, and `noContent()` are available for concise responses. Throw `HttpError` to return a normalized JSON error payload.
 
-## Scan & Manifest
+## Event bus
 
-Use the CLI to inspect your source tree and materialize a routes manifest for infra wiring.
+Use `@On()` to register EventBridge handlers and `publish()` to emit events.
 
-```bash
-pnpm sst-http scan --glob "src/routes/**/*.ts" --out routes.manifest.json
+```ts
+// src/events/user-events.ts
+import { On } from "sst-http/bus";
+
+export class UserEvents {
+  @On("user.created")
+  static async onUserCreated(detail: { id: string }) {
+    console.log("New user", detail.id);
+  }
+}
+
+export const onUserCreated = UserEvents.onUserCreated;
 ```
 
-Pass `--infer-name` to map routes without explicit paths using the kebab-case function name (matching the runtime `configureRoutes({ inferPathFromName: true })`).
+```ts
+import { publish } from "sst-http/bus";
 
-## Firebase JWT Authorizer
+await publish("user.created", { id: "123" });
+```
 
-Mark a route with `@FirebaseAuth()` and the manifest records it as protected. The core wiring function sets up an API Gateway JWT authorizer that points at your Firebase project (issuer `https://securetoken.google.com/<projectId>` and matching audience). Optional roles and optional-auth flags flow through to the adapter so you can fine-tune scopes.
+`publish()` signs requests with the current AWS credentials and requires `AWS_REGION`/`AWS_DEFAULT_REGION` in the environment.
 
-## Wire API Gateway
+## Scan & manifest
 
-`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below wires all routes to a single Lambda function inside `sst.config.ts`.
+Use the CLI to inspect your source tree and materialize a manifest for infra wiring.
+
+```bash
+pnpm sst-http scan --glob "src/**/*.ts" --out routes.manifest.json
+```
+
+Pass `--infer-name` to map routes without explicit paths using the kebab-case function name (matching `configureRoutes({ inferPathFromName: true })`). When `@On()` is used, events are emitted into the same manifest under `events`.
+
+## Firebase JWT authorizer
+
+Mark a route with `@FirebaseAuth()` and the manifest records it as protected. The wiring utilities configure an API Gateway JWT authorizer using:
+
+- Issuer: `https://securetoken.google.com/<projectId>`
+- Audience: `<projectId>`
+
+Optional roles and optional-auth flags flow into the adapter so you can fine-tune scopes.
+
+## Wire API Gateway + EventBridge
+
+`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below wires all routes to a single Lambda function inside `sst.config.ts` and connects event subscriptions from the same manifest.
 
 ```ts
 // sst.config.ts
@@ -110,12 +171,12 @@ export default $config({
       loadRoutesManifest,
       wireApiFromManifest,
       httpApiAdapter,
+      createBus,
     } = await import("sst-http/infra");
 
     const manifest = loadRoutesManifest("routes.manifest.json");
     const { api, registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ apiName: "Api" });
 
-    // Single Lambda for all routes
     const handler = new sst.aws.Function("Handler", {
       handler: "src/server.handler",
       runtime: "nodejs20.x",
@@ -123,11 +184,14 @@ export default $config({
       memory: "512 MB",
     });
 
+    const bus = createBus();
+
     wireApiFromManifest(manifest, {
       handler,
       firebaseProjectId: process.env.FIREBASE_PROJECT_ID!,
       registerRoute,
       ensureJwtAuthorizer,
+      buses: [bus],
     });
 
     return { ApiUrl: api.url };
@@ -137,9 +201,6 @@ export default $config({
 
 Swap in `restApiAdapter` if you prefer API Gateway REST APIs—the wiring contract is identical.
 
-> Tip
-> Set `FIREBASE_PROJECT_ID` in your environment when using `@FirebaseAuth()` so the JWT authorizer is configured correctly.
-
 ## Publishing
 
 ```bash
@@ -147,8 +208,6 @@ npm login
 npm version patch
 pnpm run release
 ```
-
-The release script builds the ESM/CJS bundles via `tsup` before publishing.
 
 ## License
 

@@ -1,6 +1,6 @@
 import { match, type MatchFunction } from "path-to-regexp";
 import { normalizeRouterPath } from "./paths";
-import type { HttpMethod, RouteRegistryEntry } from "./types";
+import type { HttpMethod, RouteRegistryEntry } from "../core/types";
 
 type RouteMatcher = {
   entry: RouteRegistryEntry;

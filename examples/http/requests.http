@@ -1,0 +1,20 @@
+@baseUrl = https://ub1qc5cw61.execute-api.us-east-1.amazonaws.com
+@userId = 123
+@searchQ = hello
+
+### Ping
+GET {{baseUrl}}/ping
+
+### Get user by id
+GET {{baseUrl}}/users/{{userId}}
+
+### Search
+GET {{baseUrl}}/search?q={{searchQ}}
+
+### Echo
+POST {{baseUrl}}/echo
+Content-Type: application/json
+
+{
+  "message": "hello"
+}

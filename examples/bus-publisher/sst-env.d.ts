@@ -2,16 +2,22 @@
 /* tslint:disable */
 /* eslint-disable */
 /* deno-fmt-ignore-file */
+/* biome-ignore-all lint: auto-generated */
 
 declare module "sst" {
   export interface Resource {
-    "ExampleApi": {
+    "PublisherApi": {
       "type": "sst.aws.ApiGatewayV2"
       "url": string
     }
-    "SingleHandler": {
+    "PublisherHandler": {
       "name": string
       "type": "sst.aws.Function"
+    }
+    "default": {
+      "arn": string
+      "name": string
+      "type": "sst.aws.Bus"
     }
   }
 }

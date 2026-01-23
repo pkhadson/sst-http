@@ -4,7 +4,7 @@ import type {
   APIGatewayProxyResult,
   APIGatewayProxyResultV2,
 } from "aws-lambda";
-import { getRegisteredRoutes } from "./registry";
+import { getRegisteredEvents, getRegisteredRoutes } from "../core/registry";
 import { Router } from "./router";
 import type {
   FirebaseClaims,
@@ -13,8 +13,9 @@ import type {
   ResponseHelpers,
   ResponseLike,
   RouteRegistryEntry,
+  EventRegistryEntry,
   HttpMethod,
-} from "./types";
+} from "../core/types";
 
 const HTTP_ERROR_MARKER = Symbol.for("sst-http.HttpError");
 
@@ -78,19 +79,37 @@ export function noContent(headers: Record<string, string> = {}): ResponseLike {
   };
 }
 
-type LambdaEvent = APIGatewayProxyEvent | APIGatewayProxyEventV2;
+type EventBridgeEvent = {
+  "detail-type"?: string;
+  detailType?: string;
+  detail?: unknown;
+  eventBusName?: string;
+};
+
+type HttpLambdaEvent = APIGatewayProxyEvent | APIGatewayProxyEventV2;
+
+type LambdaEvent = HttpLambdaEvent | EventBridgeEvent;
 
 type LambdaResult = APIGatewayProxyResult | APIGatewayProxyResultV2;
 
 export function createHandler() {
   const routes = getRegisteredRoutes();
   const router = new Router(routes);
+  const eventHandlers = getRegisteredEvents();
 
   return async (event: LambdaEvent, lambdaContext: unknown): Promise<LambdaResult> => {
-    const method = extractMethod(event);
-    const path = extractPath(event);
+    if (isEventBridgeEvent(event)) {
+      await handleEventBridgeEvent(event, eventHandlers, lambdaContext);
+      return {
+        statusCode: 200,
+        body: "",
+      };
+    }
+    const httpEvent = event as HttpLambdaEvent;
+    const method = extractMethod(httpEvent);
+    const path = extractPath(httpEvent);
 
-    const preferV2 = isHttpApiEvent(event);
+    const preferV2 = isHttpApiEvent(httpEvent);
 
     if (!method || !path) {
       return formatResponse(text(400, "Invalid request"), preferV2);
@@ -120,8 +139,8 @@ export function createHandler() {
 
     const { entry, params } = match;
 
-    const headers = normalizeHeaders(event.headers ?? {});
-    const query = extractQuery(event);
+    const headers = normalizeHeaders(httpEvent.headers ?? {});
+    const query = extractQuery(httpEvent);
 
     let bodyValue: unknown = undefined;
     let bodyParsed = false;
@@ -129,7 +148,7 @@ export function createHandler() {
 
     const ensureBody = () => {
       if (!bodyParsed) {
-        bodyValue = parseBody(event, headers, requiresJson);
+        bodyValue = parseBody(httpEvent, headers, requiresJson);
         bodyParsed = true;
       }
       return bodyValue;
@@ -142,13 +161,13 @@ export function createHandler() {
     };
 
     const ctx: HandlerContext = {
-      event,
+      event: httpEvent,
       lambdaContext,
       params,
       query,
       body: undefined,
       headers,
-      auth: extractAuthClaims(event, entry),
+      auth: extractAuthClaims(httpEvent, entry),
       response: ctxResponse,
     };
 
@@ -180,6 +199,37 @@ export function createHandler() {
       return handleError(error, preferV2);
     }
   };
+}
+
+function isEventBridgeEvent(event: unknown): event is EventBridgeEvent {
+  if (!event || typeof event !== "object") {
+    return false;
+  }
+  const e = event as Record<string, unknown>;
+  return typeof e["detail-type"] === "string" || typeof e.detailType === "string";
+}
+
+async function handleEventBridgeEvent(
+  event: EventBridgeEvent,
+  handlers: EventRegistryEntry[],
+  lambdaContext: unknown,
+): Promise<void> {
+  const eventType = event["detail-type"] ?? event.detailType;
+  if (!eventType) {
+    return;
+  }
+  const matches = handlers.filter((entry) => {
+    if (entry.event !== eventType) {
+      return false;
+    }
+    return true;
+  });
+  if (matches.length === 0) {
+    return;
+  }
+  await Promise.all(
+    matches.map((entry) => Promise.resolve(entry.handler(event.detail, event, lambdaContext))),
+  );
 }
 
 function buildHandlerArguments(
@@ -241,7 +291,7 @@ function buildHandlerArguments(
 }
 
 function parseBody(
-  event: LambdaEvent,
+  event: HttpLambdaEvent,
   headers: Record<string, string>,
   forceJson: boolean,
 ): unknown {
@@ -268,7 +318,7 @@ function parseBody(
   }
 }
 
-function extractRawBody(event: LambdaEvent): string | undefined {
+function extractRawBody(event: HttpLambdaEvent): string | undefined {
   if (!event.body) {
     return undefined;
   }
@@ -298,7 +348,7 @@ function normalizeHeaders(headers: Record<string, string | undefined>): Record<s
   return normalized;
 }
 
-function extractQuery(event: LambdaEvent): Record<string, string | undefined> {
+function extractQuery(event: HttpLambdaEvent): Record<string, string | undefined> {
   const single = (event as APIGatewayProxyEventV2).queryStringParameters ??
     (event as APIGatewayProxyEvent).queryStringParameters ?? {};
   const multi = (event as APIGatewayProxyEvent).multiValueQueryStringParameters ?? {};
@@ -319,7 +369,7 @@ function extractQuery(event: LambdaEvent): Record<string, string | undefined> {
   return query;
 }
 
-function extractMethod(event: LambdaEvent): string | undefined {
+function extractMethod(event: HttpLambdaEvent): string | undefined {
   return (
     (event as APIGatewayProxyEventV2).requestContext?.http?.method ||
     (event as APIGatewayProxyEvent).httpMethod ||
@@ -327,7 +377,7 @@ function extractMethod(event: LambdaEvent): string | undefined {
   ) as string | undefined;
 }
 
-function extractPath(event: LambdaEvent): string | undefined {
+function extractPath(event: HttpLambdaEvent): string | undefined {
   return (
     (event as APIGatewayProxyEventV2).rawPath ||
     (event as APIGatewayProxyEvent).path ||
@@ -335,7 +385,7 @@ function extractPath(event: LambdaEvent): string | undefined {
   );
 }
 
-function extractAuthClaims(event: LambdaEvent, entry: RouteRegistryEntry): FirebaseClaims | undefined {
+function extractAuthClaims(event: HttpLambdaEvent, entry: RouteRegistryEntry): FirebaseClaims | undefined {
   if (!entry.auth || entry.auth.type !== "firebase") {
     return undefined;
   }
@@ -422,7 +472,7 @@ function formatResponse(result: ResponseLike, preferV2: boolean): LambdaResult {
   return response;
 }
 
-function isHttpApiEvent(event: LambdaEvent): event is APIGatewayProxyEventV2 {
+function isHttpApiEvent(event: HttpLambdaEvent): event is APIGatewayProxyEventV2 {
   return (event as APIGatewayProxyEventV2).version === "2.0";
 }
 

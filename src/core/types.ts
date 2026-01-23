@@ -81,6 +81,11 @@ export type RouteRegistryEntry = {
   parameters: ParameterMetadata[];
 };
 
+export type EventRegistryEntry = {
+  handler: Handler;
+  event: string;
+};
+
 export type RouteOptions = {
   inferPathFromName?: boolean;
 };
@@ -95,6 +100,11 @@ export type RoutesManifestRoute = {
   auth: RoutesManifestAuth;
 };
 
+export type RoutesManifestEvent = {
+  event: string;
+};
+
 export type RoutesManifest = {
   routes: RoutesManifestRoute[];
+  events?: RoutesManifestEvent[];
 };

@@ -1,11 +1,12 @@
 import type {
+  EventRegistryEntry,
   FirebaseAuthMetadata,
   FirebaseAuthOptions,
   Handler,
+  HttpMethod,
   ParameterMetadata,
   RouteOptions,
   RouteRegistryEntry,
-  HttpMethod,
 } from "./types";
 
 const routeMeta = new Map<Handler, {
@@ -15,6 +16,7 @@ const routeMeta = new Map<Handler, {
 }>();
 
 const parameterMeta = new Map<Handler, ParameterMetadata[]>();
+const eventMeta = new Map<Handler, { event: string }[]>();
 
 let options: RouteOptions = {
   inferPathFromName: false,
@@ -67,6 +69,13 @@ export function registerParameter(target: Handler, meta: ParameterMetadata): voi
   parameterMeta.set(handler, list);
 }
 
+export function registerEvent(target: Handler, event: string): void {
+  const handler = target;
+  const list = eventMeta.get(handler) ?? [];
+  list.push({ event });
+  eventMeta.set(handler, list);
+}
+
 export function getRegisteredRoutes(): RouteRegistryEntry[] {
   const routes: RouteRegistryEntry[] = [];
   for (const [handler, meta] of routeMeta.entries()) {
@@ -83,6 +92,19 @@ export function getRegisteredRoutes(): RouteRegistryEntry[] {
     });
   }
   return routes;
+}
+
+export function getRegisteredEvents(): EventRegistryEntry[] {
+  const events: EventRegistryEntry[] = [];
+  for (const [handler, list] of eventMeta.entries()) {
+    for (const entry of list) {
+      events.push({
+        handler,
+        event: entry.event,
+      });
+    }
+  }
+  return events;
 }
 
 function inferPath(handler: Handler): string | undefined {

@@ -10,8 +10,8 @@ import {
   type FunctionDeclaration,
   type MethodDeclaration,
 } from "ts-morph";
-import { normalizeApiGatewayPath } from "./paths";
-import type { HttpMethod, RoutesManifest, RoutesManifestRoute } from "./types";
+import { normalizeApiGatewayPath } from "./http/paths";
+import type { HttpMethod, RoutesManifest, RoutesManifestEvent, RoutesManifestRoute } from "./core/types";
 
 const METHOD_DECORATORS: Record<string, HttpMethod> = {
   Get: "GET",
@@ -56,7 +56,8 @@ async function runScan(args: string[]): Promise<void> {
 
   project.addSourceFilesAtPaths(options.globs);
 
-  const manifest: RoutesManifest = { routes: [] };
+  const routes: RoutesManifestRoute[] = [];
+  const events: RoutesManifestEvent[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     for (const fn of sourceFile.getFunctions()) {
@@ -66,7 +67,12 @@ async function runScan(args: string[]): Promise<void> {
 
       const route = extractRoute(fn, options.inferName);
       if (route) {
-        manifest.routes.push(route);
+        routes.push(route);
+      }
+
+      const foundEvents = extractEvents(fn);
+      if (foundEvents.length > 0) {
+        events.push(...foundEvents);
       }
     }
 
@@ -83,18 +89,34 @@ async function runScan(args: string[]): Promise<void> {
 
         const route = extractRoute(method, options.inferName);
         if (route) {
-          manifest.routes.push(route);
+          routes.push(route);
+        }
+
+        const foundEvents = extractEvents(method);
+        if (foundEvents.length > 0) {
+          events.push(...foundEvents);
         }
       }
     }
   }
 
-  manifest.routes.sort((a, b) => {
+  routes.sort((a, b) => {
     if (a.path === b.path) {
       return a.method.localeCompare(b.method);
     }
     return a.path.localeCompare(b.path);
   });
+
+  if (events.length > 0) {
+    events.sort((a, b) => {
+      return a.event.localeCompare(b.event);
+    });
+  }
+
+  const manifest: RoutesManifest = { routes };
+  if (events.length > 0) {
+    manifest.events = events;
+  }
 
   const outPath = resolve(cwd(), options.outFile);
   writeFileSync(outPath, JSON.stringify(manifest, null, 2));
@@ -198,6 +220,17 @@ function extractRoute(
   };
 }
 
+function extractEvents(
+  fn: FunctionDeclaration | MethodDeclaration,
+): RoutesManifestEvent[] {
+  const decorators = collectDecorators(fn);
+  const onDecorators = decorators.filter((decorator) => decorator.getName() === "On");
+  if (onDecorators.length === 0) {
+    return [];
+  }
+  return onDecorators.map(readOnDecorator);
+}
+
 function collectDecorators(fn: FunctionDeclaration | MethodDeclaration): Decorator[] {
   if (Node.isMethodDeclaration(fn)) {
     return fn.getDecorators();
@@ -215,17 +248,27 @@ function readPath(decorator: Decorator): string | undefined {
     return undefined;
   }
 
-  const first = args[0];
-
-  if (Node.isStringLiteral(first) || Node.isNoSubstitutionTemplateLiteral(first)) {
-    const value = first.getLiteralValue();
-    if (!value) {
-      return "/";
-    }
-    return value.startsWith("/") ? value : `/${value}`;
+  const value = readStringLiteral(args[0], "path");
+  if (!value) {
+    return "/";
   }
+  return value.startsWith("/") ? value : `/${value}`;
+}
 
-  throw new Error(`Unsupported path expression: ${first.getText()}`);
+function readOnDecorator(decorator: Decorator): RoutesManifestEvent {
+  const args = decorator.getArguments();
+  if (args.length === 0) {
+    throw new Error("@On() requires an event name.");
+  }
+  const event = readStringLiteral(args[0], "event");
+  return { event };
+}
+
+function readStringLiteral(node: Node, label: string): string {
+  if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
+    return node.getLiteralValue();
+  }
+  throw new Error(`Unsupported ${label} expression: ${node.getText()}`);
 }
 
 function readFirebaseAuth(decorator: Decorator): RoutesManifestRoute["auth"] {

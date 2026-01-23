@@ -1,35 +1,7 @@
 import type { ZodTypeAny } from "zod/v4";
-import type { FirebaseAuthOptions, Handler, HttpMethod, ParameterType } from "./types";
-import { registerFirebaseAuth, registerParameter, registerRoute } from "./registry";
-
-type LegacyDecorator = (
-  target: unknown,
-  propertyKey?: string | symbol,
-  descriptor?: PropertyDescriptor,
-) => void;
-
-type LegacyParameterDecorator = (
-  target: unknown,
-  propertyKey: string | symbol | undefined,
-  parameterIndex: number,
-) => void;
-
-function resolveHandler(
-  target: unknown,
-  propertyKey?: string | symbol,
-  descriptor?: PropertyDescriptor,
-): Handler {
-  if (descriptor?.value && typeof descriptor.value === "function") {
-    return descriptor.value as Handler;
-  }
-  if (typeof target === "function" && propertyKey === undefined) {
-    return target as Handler;
-  }
-  if (target && propertyKey && typeof (target as Record<PropertyKey, unknown>)[propertyKey] === "function") {
-    return (target as Record<PropertyKey, unknown>)[propertyKey] as Handler;
-  }
-  throw new Error("Unable to determine decorated function. Ensure decorators are applied to functions.");
-}
+import type { FirebaseAuthOptions, HttpMethod, ParameterType } from "../core/types";
+import { resolveHandler, type LegacyDecorator, type LegacyParameterDecorator } from "../core/handler";
+import { registerFirebaseAuth, registerParameter, registerRoute } from "../core/registry";
 
 function createRouteDecorator(method: HttpMethod) {
   return (path?: string): LegacyDecorator =>

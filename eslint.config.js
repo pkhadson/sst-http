@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["example/**", ".sst/**", "dist/**"] },
+  { ignores: ["examples/**", ".sst/**", "dist/**"] },
   { files: ["**/*.{js,mjs,cjs,ts,mts,cts}"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -15,4 +15,3 @@ export default [
     },
   },
 ];
-

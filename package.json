@@ -26,6 +26,16 @@
       "types": "./dist/infra.d.ts",
       "import": "./dist/infra.js",
       "require": "./dist/infra.cjs"
+    },
+    "./bus": {
+      "types": "./dist/bus/index.d.ts",
+      "import": "./dist/bus/index.js",
+      "require": "./dist/bus/index.cjs"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js",
+      "require": "./dist/http/index.cjs"
     }
   },
   "bin": {
@@ -41,8 +51,8 @@
   },
   "packageManager": "pnpm@9",
   "scripts": {
-    "build": "tsup src/index.ts src/infra.ts src/cli.ts --dts --format esm,cjs --clean",
-    "dev": "tsup --watch",
+    "build": "tsup src/index.ts src/http/index.ts src/bus/index.ts src/infra.ts src/cli.ts --dts --format esm,cjs --clean",
+    "dev": "tsup src/index.ts src/http/index.ts src/bus/index.ts src/infra.ts src/cli.ts --dts --format esm,cjs --watch",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
@@ -53,7 +63,8 @@
     "release:patch": "pnpm version patch && pnpm run release",
     "release:minor": "pnpm version minor && pnpm run release",
     "release:major": "pnpm version major && pnpm run release",
-    "release:dry": "pnpm publish --access public --dry-run"
+    "release:dry": "pnpm publish --access public --dry-run",
+    "release:beta": "pnpm version prerelease --preid beta && pnpm run release"
   },
   "dependencies": {
     "path-to-regexp": "^8.2.0",

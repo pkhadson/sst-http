@@ -1,0 +1,24 @@
+{
+  "name": "sst-http-example-bus-publisher",
+  "version": "1.0.0",
+  "description": "Event bus publisher example for sst-http",
+  "main": "index.js",
+  "scripts": {
+    "routes:scan": "sst-http scan --project tsconfig.json --glob \"src/**/*.ts\" --out routes.manifest.json",
+    "dev": "pnpm run routes:scan && sst dev",
+    "deploy": "pnpm run routes:scan && sst deploy",
+    "remove": "sst remove"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "reflect-metadata": "^0.2.2",
+    "sst": "3.17.37",
+    "sst-http": "link:../.."
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.155"
+  }
+}
