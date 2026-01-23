@@ -59,12 +59,12 @@
     "prebuild": "pnpm clean",
     "prepublishOnly": "pnpm build",
     "prerelease": "pnpm lint && pnpm typecheck && pnpm build",
-    "release": "pnpm publish --access public",
+    "release": "pnpm publish --access public --tag latest",
     "release:patch": "pnpm version patch && pnpm run release",
     "release:minor": "pnpm version minor && pnpm run release",
     "release:major": "pnpm version major && pnpm run release",
     "release:dry": "pnpm publish --access public --dry-run",
-    "release:beta": "pnpm version prerelease --preid beta && pnpm run release"
+    "release:beta": "pnpm version prerelease --preid beta && pnpm publish --access public --tag beta"
   },
   "dependencies": {
     "path-to-regexp": "^8.2.0",
