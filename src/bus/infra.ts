@@ -13,11 +13,6 @@ type BusInput = BusLike | BusLike[] | Record<string, BusLike>;
 
 const MAX_SUBSCRIBER_NAME_LENGTH = 60;
 
-export function createBus(): BusLike {
-  const aws = ensureSstAws();
-  return new aws.Bus("default");
-}
-
 export function getBus(): BusLike {
   const aws = ensureSstAws();
   return aws.Bus.get("default", "default");

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { RoutesManifest } from "./core/types";
-import { wireEventsFromManifest, createBus, getBus } from "./bus/infra";
+import { wireEventsFromManifest, getBus } from "./bus/infra";
 import {
   httpApiAdapter,
   restApiAdapter,
@@ -11,7 +11,7 @@ import {
   type RegisterRouteConfig,
 } from "./http/infra";
 
-export { httpApiAdapter, restApiAdapter, createBus, getBus };
+export { httpApiAdapter, restApiAdapter, getBus };
 export type { EnsureJwtAuthorizer, RegisterRoute, RegisterRouteConfig };
 
 export function wireApiFromManifest(

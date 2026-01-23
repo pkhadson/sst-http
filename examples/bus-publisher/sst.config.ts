@@ -10,10 +10,10 @@ export default $config({
     };
   },
   async run() {
-    const { loadRoutesManifest, wireApiFromManifest, httpApiAdapter, createBus } =
+    const { loadRoutesManifest, wireApiFromManifest, httpApiAdapter, getBus } =
       await import("sst-http/infra");
 
-    const bus = createBus();
+    const bus = getBus();
 
     const handler = new sst.aws.Function("PublisherHandler", {
       handler: "src/server.handler",

@@ -171,7 +171,7 @@ export default $config({
       loadRoutesManifest,
       wireApiFromManifest,
       httpApiAdapter,
-      createBus,
+      getBus,
     } = await import("sst-http/infra");
 
     const manifest = loadRoutesManifest("routes.manifest.json");
@@ -184,7 +184,7 @@ export default $config({
       memory: "512 MB",
     });
 
-    const bus = createBus();
+    const bus = getBus();
 
     wireApiFromManifest(manifest, {
       handler,
