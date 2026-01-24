@@ -21,22 +21,6 @@ export default $config({
     });
 
 
-
-    new aws.iam.RolePolicy("PublisherHandlerPolicy", {
-      role: handler.nodes.role.name,
-      policy: {
-        Version: "2012-10-17",
-        Statement: [
-          {
-            Action: ["events:PutEvents"],
-            Resource: ["*"],
-            Effect: "Allow",
-          },
-        ],
-      },
-    });
-
-
     const manifest = loadRoutesManifest("routes.manifest.json");
     const api = new sst.aws.ApiGatewayV2("PublisherApi");
     const { registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ api });

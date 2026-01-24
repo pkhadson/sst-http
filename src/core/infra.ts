@@ -58,13 +58,17 @@ export function ensureRecord(value: unknown, message: string): UnknownRecord {
 
 export function ensureSstAws(source?: AwsSource): SstAwsNamespace {
   // @ts-expect-error-next-line
-  const aws = typeof sst !== "undefined" ? sst.aws : source?.sst?.aws ?? (globalThis as { sst?: { aws?: unknown } }).sst?.aws;
-  if (!aws) {
+  const awsData = typeof sst !== "undefined" ? sst.aws : source?.sst?.aws ?? (globalThis as { sst?: { aws?: unknown } }).sst?.aws;
+  if (!awsData) {
     throw new Error(
       "SST aws namespace is not available. Ensure this code runs within an SST config.",
     );
   }
-  return aws;
+
+  // @ts-expect-error-next-line
+  awsData.iam = aws.iam;
+
+  return awsData;
 }
 
 export function resolveHandlerInput(handler: unknown): unknown {
