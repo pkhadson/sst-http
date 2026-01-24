@@ -54,9 +54,11 @@ export function loadRoutesManifest(filePath: string): RoutesManifest {
   return manifest;
 }
 
+let publisherHandlerCount = 0;
+
 export function setHandlerBus(handler: unknown): void {
   const aws = ensureSstAws();
-  new aws.iam.RolePolicy("PublisherHandlerPolicy", {
+  new aws.iam.RolePolicy("PublisherHandlerPolicy" + publisherHandlerCount ? publisherHandlerCount : "", {
     role: (handler as { nodes: { role: { name: string } } }).nodes.role.name,
     policy: {
       Version: "2012-10-17",
@@ -69,6 +71,9 @@ export function setHandlerBus(handler: unknown): void {
       ],
     },
   });
+
+  publisherHandlerCount++;
+
 }
 
 export type {
