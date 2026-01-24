@@ -1,6 +1,6 @@
 {
   "name": "sst-http",
-  "version": "2.0.0-beta.9",
+  "version": "2.0.0-beta.10",
   "description": "Decorator-based routing for SST v3 with a single Lambda and Firebase JWT authorizer.",
   "license": "MIT",
   "author": "",
