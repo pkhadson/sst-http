@@ -8,6 +8,8 @@ import {
 
 const MAX_SUBSCRIBER_NAME_LENGTH = 60;
 
+let bus:BusLike;
+
 export function wireEventsFromManifest(
   events: RoutesManifestEvent[] | undefined,
   opts: {
@@ -27,8 +29,8 @@ export function wireEventsFromManifest(
     if (seen.has(key)) {
       continue;
     }
+    if(!bus) bus = aws.Bus.get("default", "default");
     seen.add(key);
-    const bus = aws.Bus.get("default", "default");
     const subscriberName = buildSubscriberName(event.event);
     subscribeToBus(bus, subscriberName, subscriber, event.event);
   }
