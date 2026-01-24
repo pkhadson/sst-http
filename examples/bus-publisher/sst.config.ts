@@ -10,24 +10,32 @@ export default $config({
     };
   },
   async run() {
-    const { loadRoutesManifest, wireApiFromManifest, httpApiAdapter, getBus } =
+    const { loadRoutesManifest, wireApiFromManifest, httpApiAdapter } =
       await import("sst-http/infra");
-
-    const bus = getBus();
 
     const handler = new sst.aws.Function("PublisherHandler", {
       handler: "src/server.handler",
       runtime: "nodejs20.x",
       timeout: "10 seconds",
       memory: "512 MB",
-      link: [bus],
-      permissions: [
-        {
-          actions: ["events:PutEvents"],
-          resources: ["*"],
-        },
-      ],
     });
+
+
+
+    new aws.iam.RolePolicy("PublisherHandlerPolicy", {
+      role: handler.nodes.role.name,
+      policy: {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Action: ["events:PutEvents"],
+            Resource: ["*"],
+            Effect: "Allow",
+          },
+        ],
+      },
+    });
+
 
     const manifest = loadRoutesManifest("routes.manifest.json");
     const api = new sst.aws.ApiGatewayV2("PublisherApi");

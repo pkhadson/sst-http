@@ -17,6 +17,9 @@ export type BusConstructor = {
 export type SstAwsNamespace = {
   ApiGatewayV2: Constructor<unknown>;
   ApiGateway: Constructor<unknown>;
+  iam: {
+    RolePolicy: Constructor<unknown>;
+  };
   Bus: BusConstructor;
 };
 

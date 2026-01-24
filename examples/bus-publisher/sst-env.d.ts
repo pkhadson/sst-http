@@ -14,11 +14,6 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Function"
     }
-    "default": {
-      "arn": string
-      "name": string
-      "type": "sst.aws.Bus"
-    }
   }
 }
 /// <reference path="sst-env.d.ts" />

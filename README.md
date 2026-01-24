@@ -113,7 +113,7 @@ Helpers such as `json()`, `text()`, and `noContent()` are available for concise 
 
 ## Event bus
 
-Use `@On()` to register EventBridge handlers and `publish()` to emit events.
+Use `@On()` to register EventBridge handlers and `publish()` to emit events. Handlers decorated with `@On()` are automatically subscribed to the default EventBridge bus when you call `wireApiFromManifest()` with a manifest that includes events.
 
 ```ts
 // src/events/user-events.ts
@@ -158,7 +158,7 @@ Optional roles and optional-auth flags flow into the adapter so you can fine-tun
 
 ## Wire API Gateway + EventBridge
 
-`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below wires all routes to a single Lambda function inside `sst.config.ts` and connects event subscriptions from the same manifest.
+`sst-http/infra` ships with a manifest-driven wiring utility plus adapters for HTTP API (ApiGatewayV2) and REST API (ApiGateway). The example below wires all routes to a single Lambda function inside `sst.config.ts` and automatically connects event subscriptions from the same manifest.
 
 ```ts
 // sst.config.ts
@@ -171,7 +171,6 @@ export default $config({
       loadRoutesManifest,
       wireApiFromManifest,
       httpApiAdapter,
-      getBus,
     } = await import("sst-http/infra");
 
     const manifest = loadRoutesManifest("routes.manifest.json");
@@ -184,14 +183,11 @@ export default $config({
       memory: "512 MB",
     });
 
-    const bus = getBus();
-
     wireApiFromManifest(manifest, {
       handler,
       firebaseProjectId: process.env.FIREBASE_PROJECT_ID!,
       registerRoute,
       ensureJwtAuthorizer,
-      buses: [bus],
     });
 
     return { ApiUrl: api.url };
@@ -199,7 +195,7 @@ export default $config({
 });
 ```
 
-Swap in `restApiAdapter` if you prefer API Gateway REST APIs—the wiring contract is identical.
+When the manifest contains events (from `@On()` decorators), handlers are automatically subscribed to the default EventBridge bus. Swap in `restApiAdapter` if you prefer API Gateway REST APIs—the wiring contract is identical.
 
 ## Publishing
 
