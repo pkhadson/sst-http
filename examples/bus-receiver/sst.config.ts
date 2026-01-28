@@ -23,9 +23,7 @@ export default $config({
 
     wireApiFromManifest(manifest, {
       handler,
-      firebaseProjectId: "",
       registerRoute: (_method, _path, _config) => {},
-      ensureJwtAuthorizer: (_name, _cfg) => undefined,
     });
 
     return {

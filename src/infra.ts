@@ -19,9 +19,9 @@ export function wireApiFromManifest(
   manifest: RoutesManifest,
   opts: {
     handler: unknown;
-    firebaseProjectId: string;
+    firebaseProjectId?: string;
     registerRoute: RegisterRoute;
-    ensureJwtAuthorizer: EnsureJwtAuthorizer;
+    ensureJwtAuthorizer?: EnsureJwtAuthorizer;
   },
 ): void {
   if (!manifest || !Array.isArray(manifest.routes)) {

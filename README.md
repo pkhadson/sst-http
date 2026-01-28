@@ -174,7 +174,8 @@ export default $config({
     } = await import("sst-http/infra");
 
     const manifest = loadRoutesManifest("routes.manifest.json");
-    const { api, registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ apiName: "Api" });
+    const api = new sst.aws.ApiGatewayV2("Api");
+    const { registerRoute, ensureJwtAuthorizer } = httpApiAdapter({ api });
 
     const handler = new sst.aws.Function("Handler", {
       handler: "src/server.handler",
@@ -185,13 +186,22 @@ export default $config({
 
     wireApiFromManifest(manifest, {
       handler,
-      firebaseProjectId: process.env.FIREBASE_PROJECT_ID!,
+      firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
       registerRoute,
       ensureJwtAuthorizer,
     });
 
     return { ApiUrl: api.url };
   },
+});
+```
+
+**Note:** `firebaseProjectId` and `ensureJwtAuthorizer` are optional and only required when your manifest contains routes with `@FirebaseAuth()`. For event-only handlers (no HTTP routes), you can omit `registerRoute` and `ensureJwtAuthorizer`:
+
+```ts
+wireApiFromManifest(manifest, {
+  handler,
+  registerRoute: (_method, _path, _config) => {},
 });
 ```
 

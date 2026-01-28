@@ -2,11 +2,9 @@ import { normalizeApiGatewayPath } from "./paths";
 import type { HttpMethod, RoutesManifest, RoutesManifestRoute } from "../core/types";
 import {
   ensureRecord,
-  ensureSstAws,
   getFunction,
   isRecord,
   resolveHandlerInput,
-  type AwsSource,
 } from "../core/infra";
 
 export type RegisterRouteConfig = {
@@ -31,19 +29,17 @@ export type EnsureJwtAuthorizer = (
   cfg: { issuer: string; audiences: string[] },
 ) => unknown;
 
-type AdapterArgs = AwsSource & {
-  api?: unknown;
-  apiName?: string;
-  apiArgs?: unknown;
+type AdapterArgs = {
+  api: unknown;
 };
 
 export function wireRoutesFromManifest(
   manifest: RoutesManifest,
   opts: {
     handler: unknown;
-    firebaseProjectId: string;
+    firebaseProjectId?: string;
     registerRoute: RegisterRoute;
-    ensureJwtAuthorizer: EnsureJwtAuthorizer;
+    ensureJwtAuthorizer?: EnsureJwtAuthorizer;
   },
 ): void {
   const firebaseRoutes = manifest.routes.filter((route) => route.auth.type === "firebase");
@@ -63,9 +59,8 @@ export function wireRoutesFromManifest(
   }
 }
 
-export function httpApiAdapter(args?: AdapterArgs) {
-  const aws = args?.api ? undefined : ensureSstAws(args);
-  const api = args?.api ?? new aws!.ApiGatewayV2(args?.apiName ?? "HttpApi", args?.apiArgs);
+export function httpApiAdapter(args: AdapterArgs) {
+  const api = args.api;
 
   const ensureJwtAuthorizer = createHttpAuthorizerManager(api);
   const registerRoute = createRouteRegistrar(api, "ApiGatewayV2");
@@ -77,9 +72,8 @@ export function httpApiAdapter(args?: AdapterArgs) {
   };
 }
 
-export function restApiAdapter(args?: AdapterArgs) {
-  const aws = args?.api ? undefined : ensureSstAws(args);
-  const api = args?.api ?? new aws!.ApiGateway(args?.apiName ?? "RestApi", args?.apiArgs);
+export function restApiAdapter(args: AdapterArgs) {
+  const api = args.api;
 
   const ensureJwtAuthorizer = createRestAuthorizerManager(api);
   const registerRoute = createRouteRegistrar(api, "ApiGateway");
@@ -94,8 +88,8 @@ export function restApiAdapter(args?: AdapterArgs) {
 function ensureFirebaseAuthorizer(
   firebaseRouteCount: number,
   opts: {
-    firebaseProjectId: string;
-    ensureJwtAuthorizer: EnsureJwtAuthorizer;
+    firebaseProjectId?: string;
+    ensureJwtAuthorizer?: EnsureJwtAuthorizer;
   },
 ): unknown {
   if (firebaseRouteCount === 0) {
@@ -103,6 +97,9 @@ function ensureFirebaseAuthorizer(
   }
   if (!opts.firebaseProjectId) {
     throw new Error("firebaseProjectId is required when using @FirebaseAuth()");
+  }
+  if (!opts.ensureJwtAuthorizer) {
+    throw new Error("ensureJwtAuthorizer is required when using @FirebaseAuth()");
   }
   const issuer = `https://securetoken.google.com/${opts.firebaseProjectId}`;
   return opts.ensureJwtAuthorizer("firebase", {
