@@ -34,7 +34,8 @@ export type ParameterType =
   | "header"
   | "req"
   | "res"
-  | "auth";
+  | "auth"
+  | "userId";
 
 export type ParameterMetadata = {
   index: number;

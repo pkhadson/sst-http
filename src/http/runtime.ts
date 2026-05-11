@@ -275,6 +275,14 @@ function buildHandlerArguments(
         args[meta.index] = ctx.auth;
         break;
       }
+      case "userId": {
+        const userId = resolveUserIdFromClaims(ctx.auth);
+        if (!userId) {
+          throw new HttpError(401, "Invalid authentication");
+        }
+        args[meta.index] = userId;
+        break;
+      }
       default: {
         args[meta.index] = ctx;
       }
@@ -397,6 +405,38 @@ function extractAuthClaims(event: HttpLambdaEvent, entry: RouteRegistryEntry): F
     (ctxV1?.authorizer as { claims?: FirebaseClaims } | undefined)?.claims;
 
   return claims ?? undefined;
+}
+
+function normalizeUserIdentifier(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function resolveUserIdFromClaims(claims?: FirebaseClaims): string | undefined {
+  const email = normalizeUserIdentifier(claims?.email);
+  if (email) {
+    return email.toLowerCase();
+  }
+
+  const userId = normalizeUserIdentifier(claims?.user_id);
+  if (userId) {
+    return userId;
+  }
+
+  const uid = normalizeUserIdentifier(claims?.uid);
+  if (uid) {
+    return uid;
+  }
+
+  const sub = normalizeUserIdentifier(claims?.sub);
+  if (sub) {
+    return sub;
+  }
+
+  return undefined;
 }
 
 function isHttpError(error: unknown): error is HttpError {

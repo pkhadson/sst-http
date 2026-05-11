@@ -48,6 +48,10 @@ export function Auth(): LegacyParameterDecorator {
   return createParameterDecorator("auth");
 }
 
+export function UserId(): LegacyParameterDecorator {
+  return createParameterDecorator("userId");
+}
+
 export function Body(schema?: ZodTypeAny): LegacyParameterDecorator {
   return createParameterDecorator("body", { schema });
 }

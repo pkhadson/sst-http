@@ -14,6 +14,7 @@ export {
   Options,
   FirebaseAuth,
   Auth,
+  UserId,
   Body,
   Query,
   Param,
