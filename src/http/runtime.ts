@@ -86,9 +86,13 @@ type EventBridgeEvent = {
   eventBusName?: string;
 };
 
+type SqsEvent = {
+  Records: { body: string }[];
+};
+
 type HttpLambdaEvent = APIGatewayProxyEvent | APIGatewayProxyEventV2;
 
-type LambdaEvent = HttpLambdaEvent | EventBridgeEvent;
+type LambdaEvent = HttpLambdaEvent | EventBridgeEvent | SqsEvent;
 
 type LambdaResult = APIGatewayProxyResult | APIGatewayProxyResultV2;
 
@@ -98,6 +102,13 @@ export function createHandler() {
   const eventHandlers = getRegisteredEvents();
 
   return async (event: LambdaEvent, lambdaContext: unknown): Promise<LambdaResult> => {
+    if (isSqsEvent(event)) {
+      await handleSqsEvent(event, eventHandlers, lambdaContext);
+      return {
+        statusCode: 200,
+        body: "",
+      };
+    }
     if (isEventBridgeEvent(event)) {
       await handleEventBridgeEvent(event, eventHandlers, lambdaContext);
       return {
@@ -207,6 +218,31 @@ function isEventBridgeEvent(event: unknown): event is EventBridgeEvent {
   }
   const e = event as Record<string, unknown>;
   return typeof e["detail-type"] === "string" || typeof e.detailType === "string";
+}
+
+function isSqsEvent(event: unknown): event is SqsEvent {
+  if (!event || typeof event !== "object") {
+    return false;
+  }
+  const records = (event as Record<string, unknown>).Records;
+  return Array.isArray(records) && records.every((record) => {
+    return Boolean(record)
+      && typeof record === "object"
+      && typeof (record as { body?: unknown }).body === "string";
+  });
+}
+
+async function handleSqsEvent(
+  event: SqsEvent,
+  handlers: EventRegistryEntry[],
+  lambdaContext: unknown,
+): Promise<void> {
+  await Promise.all(event.Records.map(async (record) => {
+    const message = JSON.parse(record.body) as unknown;
+    if (isEventBridgeEvent(message)) {
+      await handleEventBridgeEvent(message, handlers, lambdaContext);
+    }
+  }));
 }
 
 async function handleEventBridgeEvent(

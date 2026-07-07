@@ -85,6 +85,11 @@ export type RouteRegistryEntry = {
 export type EventRegistryEntry = {
   handler: Handler;
   event: string;
+  delay?: number;
+};
+
+export type OnOptions = {
+  delay?: number;
 };
 
 export type RouteOptions = {
@@ -103,6 +108,7 @@ export type RoutesManifestRoute = {
 
 export type RoutesManifestEvent = {
   event: string;
+  delay?: number;
 };
 
 export type RoutesManifest = {

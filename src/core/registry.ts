@@ -4,6 +4,7 @@ import type {
   FirebaseAuthOptions,
   Handler,
   HttpMethod,
+  OnOptions,
   ParameterMetadata,
   RouteOptions,
   RouteRegistryEntry,
@@ -16,7 +17,7 @@ const routeMeta = new Map<Handler, {
 }>();
 
 const parameterMeta = new Map<Handler, ParameterMetadata[]>();
-const eventMeta = new Map<Handler, { event: string }[]>();
+const eventMeta = new Map<Handler, { event: string; delay?: number }[]>();
 
 let options: RouteOptions = {
   inferPathFromName: false,
@@ -69,10 +70,10 @@ export function registerParameter(target: Handler, meta: ParameterMetadata): voi
   parameterMeta.set(handler, list);
 }
 
-export function registerEvent(target: Handler, event: string): void {
+export function registerEvent(target: Handler, event: string, options: OnOptions = {}): void {
   const handler = target;
   const list = eventMeta.get(handler) ?? [];
-  list.push({ event });
+  list.push({ event, delay: options.delay });
   eventMeta.set(handler, list);
 }
 
@@ -101,6 +102,7 @@ export function getRegisteredEvents(): EventRegistryEntry[] {
       events.push({
         handler,
         event: entry.event,
+        delay: entry.delay,
       });
     }
   }

@@ -26,6 +26,7 @@ export {
 } from "./http";
 
 export { On, publish } from "./bus";
+export type { OnOptions } from "./bus";
 
 export type {
   Handler,

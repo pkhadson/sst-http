@@ -129,6 +129,15 @@ export class UserEvents {
 export const onUserCreated = UserEvents.onUserCreated;
 ```
 
+Delay delivery by routing the EventBridge event through SQS:
+
+```ts
+@On("user.created", { delay: 60 })
+static async onUserCreated(detail: { id: string }) {}
+```
+
+`delay` is in seconds and supports the SQS range: `0` to `900`.
+
 ```ts
 import { publish } from "sst-http/bus";
 

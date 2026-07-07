@@ -109,7 +109,7 @@ async function runScan(args: string[]): Promise<void> {
 
   if (events.length > 0) {
     events.sort((a, b) => {
-      return a.event.localeCompare(b.event);
+      return a.event.localeCompare(b.event) || (a.delay ?? 0) - (b.delay ?? 0);
     });
   }
 
@@ -261,7 +261,29 @@ function readOnDecorator(decorator: Decorator): RoutesManifestEvent {
     throw new Error("@On() requires an event name.");
   }
   const event = readStringLiteral(args[0], "event");
-  return { event };
+  const result: RoutesManifestEvent = { event };
+  const options = args[1];
+  if (!options) {
+    return result;
+  }
+  if (!Node.isObjectLiteralExpression(options)) {
+    throw new Error("@On() options must be an object literal.");
+  }
+  for (const prop of options.getProperties()) {
+    if (!Node.isPropertyAssignment(prop) || prop.getName() !== "delay") {
+      continue;
+    }
+    const initializer = prop.getInitializer();
+    const value = initializer?.getText() ?? "";
+    if (!/^\d+$/.test(value)) {
+      throw new Error("@On({ delay }) expects an integer literal from 0 to 900 seconds.");
+    }
+    result.delay = Number(value);
+    if (result.delay > 900) {
+      throw new Error("@On({ delay }) expects an integer literal from 0 to 900 seconds.");
+    }
+  }
+  return result;
 }
 
 function readStringLiteral(node: Node, label: string): string {

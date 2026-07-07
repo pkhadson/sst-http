@@ -3,15 +3,25 @@ export type Constructor<T = unknown> = new (...args: unknown[]) => T;
 
 export type BusSubscriberArgs = { pattern?: { detailType?: string[] } };
 
+export type QueueLike = {
+  arn?: unknown;
+  subscribe: (subscriber: unknown, args?: unknown) => unknown;
+};
+
 export type BusLike = {
   name?: unknown;
   arn?: unknown;
   subscribe: (name: string, subscriber: unknown, args?: BusSubscriberArgs) => unknown;
+  subscribeQueue?: (name: string, queue: unknown, args?: BusSubscriberArgs) => unknown;
 };
 
 export type BusConstructor = {
   new (name: string, args?: unknown, opts?: unknown): BusLike;
   get: (name: string, opts?: unknown) => BusLike;
+};
+
+export type QueueConstructor = {
+  new (name: string, args?: unknown, opts?: unknown): QueueLike;
 };
 
 export type SstAwsNamespace = {
@@ -21,6 +31,7 @@ export type SstAwsNamespace = {
     RolePolicy: Constructor<unknown>;
   };
   Bus: BusConstructor;
+  Queue: QueueConstructor;
 };
 
 export type AwsSource = {
@@ -89,4 +100,3 @@ export function resolveHandlerInput(handler: unknown): unknown {
   }
   throw new Error("Unsupported handler type: provide a handler string, FunctionArgs, or a Function ARN/output");
 }
-
