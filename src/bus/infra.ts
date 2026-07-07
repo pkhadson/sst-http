@@ -40,7 +40,7 @@ export function wireEventsFromManifest(
     seen.set(event.event, delay);
     const subscriberName = buildSubscriberName(event.event);
     if (delay > 0) {
-      subscribeToBusWithDelay(aws, bus, subscriberName, subscriber, event.event, delay);
+      subscribeToBusWithDelay(aws, bus, subscriberName, opts.handler, subscriber, event.event, delay);
     } else {
       subscribeToBus(bus, subscriberName, subscriber, event.event);
     }
@@ -67,6 +67,7 @@ function subscribeToBusWithDelay(
   aws: SstAwsNamespace,
   bus: BusLike,
   subscriberName: string,
+  handler: unknown,
   subscriber: unknown,
   eventName: string,
   delay: number,
@@ -76,13 +77,42 @@ function subscribeToBusWithDelay(
   }
   const queue = new aws.Queue(`${subscriberName}DelayQueue`, {
     delay: `${delay} seconds`,
+    visibilityTimeout: "15 minutes",
   });
+  const policy = grantQueueRead(aws, handler, queue.arn, subscriberName);
   bus.subscribeQueue(subscriberName, queue, {
     pattern: {
       detailType: [eventName],
     },
   });
-  queue.subscribe(subscriber);
+  queue.subscribe(subscriber, undefined, { dependsOn: [policy] });
+}
+
+function grantQueueRead(
+  aws: SstAwsNamespace,
+  handler: unknown,
+  queueArn: unknown,
+  subscriberName: string,
+): unknown {
+  return new aws.iam.RolePolicy(`${subscriberName}DelayQueuePolicy`, {
+    role: (handler as { nodes: { role: { name: string } } }).nodes.role.name,
+    policy: {
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Action: [
+            "sqs:ChangeMessageVisibility",
+            "sqs:DeleteMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:GetQueueUrl",
+            "sqs:ReceiveMessage",
+          ],
+          Resource: [queueArn],
+          Effect: "Allow",
+        },
+      ],
+    },
+  });
 }
 
 function buildSubscriberName(eventName: string): string {

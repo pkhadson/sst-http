@@ -5,7 +5,7 @@ export type BusSubscriberArgs = { pattern?: { detailType?: string[] } };
 
 export type QueueLike = {
   arn?: unknown;
-  subscribe: (subscriber: unknown, args?: unknown) => unknown;
+  subscribe: (subscriber: unknown, args?: unknown, opts?: unknown) => unknown;
 };
 
 export type BusLike = {
